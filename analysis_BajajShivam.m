@@ -12,7 +12,7 @@ nc = 3;
 
 % plot the left hand marker in x-y-z
 marker_name = "L.Finger3.M3";
-marker_xyz = d{:,find(names(d) == "L.Finger3.M3") + [0:2]};
+marker_xyz = d{:,find(names(d) == "L.Finger3.M3") + (0:2)};
 
 t = d{:,"Time"};
 t_inds = t>min(TL)&t<max(TL);
@@ -25,6 +25,24 @@ subplot(nr,nc,1)
 hold on
 
 %%% YOUR CODE HERE
+
+plot(t,marker_xyz(:,1))
+plot(t,marker_xyz(:,2))
+plot(t,marker_xyz(:,3))
+title('Raw Info')
+xlabel('seconds')
+ylabel('mm')
+legend('X','Y','Z')
+
+hold off
+
+subplot(nr,nc,2)
+hold on
+plot(marker_xyz(:,2), marker_xyz(:,3))
+title('Front View')
+xlabel('Y')
+ylabel('Z')
+hold off
 
 % Filter out large, slow movements with a high-pass butterworth filter at 2
 % Hz cutoff and filter out jitter with a low-pass butterworth filter at 20
@@ -42,14 +60,42 @@ fc_lo = 20;
 % cutoff frequency Wn [https://www.mathworks.com/help/signal/ref/butter.html]
 
 %%% YOUR CODE HERE
+%filtering between 2Hz and 20Hz
+[b1,a1] = butter(6,[(fc_hi/fs) (fc_lo/fs)]);
+filter = filtfilt(b1,a1,marker_xyz);
+%low pass at 2Hz
+[b2,a2] = butter(6,(fc_hi/fs));
+low_pass_filt = filtfilt(b2,a2,marker_xyz);
+
+%plotting low freq component
+subplot(nr,nc,3)
+hold on
+plot(low_pass_filt(:,2),low_pass_filt(:,3))
+title('low freq component')
+xlabel('Y')
+ylabel('Z')
+hold off
 
 % calculate the first PC
 
 %%% YOUR CODE HERE
+[coeff,score,latent,tsquared,explained,mu] = pca(filter);
+first_pc = score(:,1)*coeff(:,1)';
+
+subplot(nr,nc,4)
+hold on
+plot(first_pc(:,2), first_pc(:,3))
+plot(filter(:,2), filter(:,3))
+xlabel('Y')
+ylabel('Z')
+title('High Frequency component and 1st PC')
+hold off
+
 
 % calculate projection onto first PC
 
 %%% YOUR CODE HERE
+proj = filter*coeff(:,1);
 
 % smooth with a savitsky-golay smoother
 proj_smooth = smoothdata(proj,'sgolay');
@@ -75,7 +121,7 @@ plot(t,proj,'k.')
 plot(t,proj_smooth,'r')
 h1 = refline(0,amp);
 h2 = refline(0,-amp);
-h1.Color = 0.5*[1 1 1];
+h1.Color = 0.5*[1 1 1];a
 h2.Color = 0.5*[1 1 1];
 xlim(TL)
 title(ttl)
